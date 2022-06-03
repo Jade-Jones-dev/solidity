@@ -1,4 +1,4 @@
-from opcodes import AND, ISZERO, SGT, SLT, SUB
+from opcodes import AND, ISZERO, SGT, SLT, ADD
 from rule import Rule
 from util import BVSignedMax, BVSignedMin, BVSignedUpCast
 from z3 import BitVec, BVAddNoOverflow, BVAddNoUnderflow, Not
@@ -25,14 +25,19 @@ while type_bits <= n_bits:
 	# cast to full n_bits values
 	X = BVSignedUpCast(X_short, n_bits)
 	Y = BVSignedUpCast(Y_short, n_bits)
+	_sum = ADD(X, Y)
 
 	# Constants
 	maxValue = BVSignedMax(type_bits, n_bits)
 	minValue = BVSignedMin(type_bits, n_bits)
 
 	# Overflow and underflow checks in YulUtilFunction::overflowCheckedIntAddFunction
-	overflow_check = AND(ISZERO(SLT(X, 0)), SGT(Y, SUB(maxValue, X)))
-	underflow_check = AND(SLT(X, 0), SLT(Y, SUB(minValue, X)))
+	if type_bits == 256:
+		overflow_check = AND(ISZERO(SLT(X, 0)), SLT(_sum, Y))
+		underflow_check = AND(SLT(X, 0), ISZERO(SLT(_sum, Y)))
+	else:
+		overflow_check = AND(ISZERO(SLT(X, 0)), SGT(_sum, maxValue))
+		underflow_check = AND(SLT(X, 0), SLT(_sum, minValue))
 
 	rule.check(actual_overflow, overflow_check != 0)
 	rule.check(actual_underflow, underflow_check != 0)
