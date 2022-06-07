@@ -640,9 +640,10 @@ string YulUtilFunctions::overflowCheckedIntAddFunction(IntegerType const& _type)
 				<!signed>
 					<?256bit>
 						// overflow, if x > sum
-						if lt(sum, x) { <panic>() }
+						if gt(x, sum) { <panic>() }
 					<!256bit>
-						if lt(<maxValue>, sum) { <panic>() }
+						// overflow, if sum > maxValue
+						if gt(sum, <maxValue>) { <panic>() }
 					</256bit>
 				</signed>
 			}
@@ -807,15 +808,28 @@ string YulUtilFunctions::overflowCheckedIntSubFunction(IntegerType const& _type)
 			function <functionName>(x, y) -> diff {
 				x := <cleanupFunction>(x)
 				y := <cleanupFunction>(y)
-				<?signed>
-					// underflow, if y >= 0 and x < (minValue + y)
-					if and(iszero(slt(y, 0)), slt(x, add(<minValue>, y))) { <panic>() }
-					// overflow, if y < 0 and x > (maxValue + y)
-					if and(slt(y, 0), sgt(x, add(<maxValue>, y))) { <panic>() }
-				<!signed>
-					if lt(x, y) { <panic>() }
-				</signed>
 				diff := sub(x, y)
+				<?signed>
+					<?256bit>
+						// underflow, if y >= 0 and diff > x
+						if and(iszero(slt(y, 0)), sgt(diff, x)) { <panic>() }
+						// overflow, if y < 0 and diff < x
+						if and(slt(y, 0), slt(diff, x)) { <panic>() }
+					<!256bit>
+						// underflow, if y >= 0 and diff < minValue
+						if and(iszero(slt(y, 0)), slt(diff, <minValue>)) { <panic>() }
+						// overflow, if y < 0 and diff > maxValue
+						if and(slt(y, 0), sgt(diff, <maxValue>)) { <panic>() }
+					</256bit>
+				<!signed>
+					<?256bit>
+						//underflow if diff > x
+						if gt(diff, x) { <panic>() }
+					<!256bit>
+						//underflow if diff > maxValue
+						if gt(diff, <maxValue>) { <panic>() }
+					</256bit>
+				</signed>
 			}
 			)")
 			("functionName", functionName)
@@ -824,6 +838,7 @@ string YulUtilFunctions::overflowCheckedIntSubFunction(IntegerType const& _type)
 			("minValue", toCompactHexWithPrefix(u256(_type.minValue())))
 			("cleanupFunction", cleanupFunction(_type))
 			("panic", panicFunction(PanicCode::UnderOverflow))
+			("256bit", _type.numBits() == 256)
 			.render();
 	});
 }
