@@ -39,6 +39,56 @@ protected:
 		void endVisit(frontend::Identifier const& _node) override { endVisitNode(_node); }
 		void endVisit(frontend::IdentifierPath const& _node) override;
 
+		void endVisit(frontend::ContractDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::StructDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::EnumDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::EnumValue const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::UserDefinedValueTypeDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::VariableDeclaration const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::FunctionDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::ModifierDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::EventDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+		void endVisit(frontend::ErrorDefinition const& _node) override
+		{
+			handleGenericDeclaration(_node);
+		}
+
+		void handleGenericDeclaration(frontend::Declaration const& _declaration)
+		{
+			if (
+				m_outer.m_symbolName == _declaration.name() &&
+				*m_outer.m_declarationToRename == _declaration
+			)
+				m_outer.m_locations.emplace_back(_declaration.nameLocation());
+		}
+
 		private:
 			RenameSymbol& m_outer;
 	};
