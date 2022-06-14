@@ -36,7 +36,8 @@ protected:
 	{
 		explicit Visitor(RenameSymbol& _outer): m_outer(_outer) {}
 		void endVisit(frontend::ImportDirective const& _node) override;
-		void endVisit(frontend::Identifier const& _node) override { endVisitNode(_node); }
+		void endVisit(frontend::MemberAccess const& _node) override;
+		void endVisit(frontend::Identifier const& _node) override;
 		void endVisit(frontend::IdentifierPath const& _node) override;
 
 		void endVisit(frontend::ContractDefinition const& _node) override

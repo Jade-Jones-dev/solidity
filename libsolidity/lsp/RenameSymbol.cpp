@@ -130,6 +130,11 @@ void RenameSymbol::extractNameAndDeclaration(frontend::ASTNode const& _node, int
 	}
 	else if (auto const* identifierPath = dynamic_cast<IdentifierPath const*>(&_node))
 		extractNameAndDeclaration(*identifierPath, _cursorBytePosition);
+	else if (auto const* memberAccess = dynamic_cast<MemberAccess const*>(&_node))
+	{
+		m_symbolName = memberAccess->memberName();
+		m_declarationToRename = memberAccess->annotation().referencedDeclaration;
+	}
 	else
 		solAssert(false, "Unexpected ASTNODE id: " + to_string(_node.id()));
 }
@@ -160,6 +165,24 @@ void RenameSymbol::Visitor::endVisit(frontend::ImportDirective const& _node)
 			m_outer.m_locations.emplace_back(symbolAlias.location);
 
 	solAssert(sizeBefore < m_outer.m_locations.size(), "Found no source location in ImportDirective?!");
+}
+
+void RenameSymbol::Visitor::endVisit(frontend::MemberAccess const& _node)
+{
+	if (
+		m_outer.m_symbolName == _node.memberName() &&
+		*m_outer.m_declarationToRename == *_node.annotation().referencedDeclaration
+   )
+		m_outer.m_locations.emplace_back(_node.memberLocation());
+}
+
+void RenameSymbol::Visitor::endVisit(frontend::Identifier const& _node)
+{
+	if (
+		m_outer.m_symbolName == _node.name() &&
+		*m_outer.m_declarationToRename == *_node.annotation().referencedDeclaration
+   )
+		m_outer.m_locations.emplace_back(_node.location());
 }
 
 void RenameSymbol::extractNameAndDeclaration(frontend::IdentifierPath const& _identifierPath, int _cursorBytePosition)
