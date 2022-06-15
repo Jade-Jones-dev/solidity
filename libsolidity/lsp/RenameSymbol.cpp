@@ -188,7 +188,7 @@ void RenameSymbol::Visitor::endVisit(Identifier const& _node)
 	if (
 		m_outer.m_symbolName == _node.name() &&
 		*m_outer.m_declarationToRename == *_node.annotation().referencedDeclaration
-   )
+	)
 		m_outer.m_locations.emplace_back(_node.location());
 }
 

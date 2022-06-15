@@ -4,11 +4,13 @@ pragma solidity >=0.8.0;
 import "./contract.sol" as externalFile;
 //                         ^^^^^^^^^^^^ @FileAliasInImportDirective
 //                             ^ @CursorOnFileAliasInImportDirective
-import {ToRename, User as ExternalContract} from "./contract.sol";
-//                        ^^^^^^^^^^^^^^^^ @RenamedContractInImportDirective
+import {ToRename as ExternalContract, User} from "./contract.sol";
+//                  ^^^^^^^^^^^^^^^^ @RenamedContractInImportDirective
 //                         ^ @CursorOnRenamedContractInImportDirective
 //      ^^^^^^^^ @OriginalNameInImportDirective
 //      ^ @CursorOnOriginalNameInImportDirective
+//                                    ^^^^ @UserInImportDirective
+//                                    ^ @CursorOnUserInImportDirective
 
 contract C
 {
@@ -20,6 +22,9 @@ contract C
 //  ^ @CursorOnFileAliasInPublicVariable
 //               ^^^^^^^^ @OriginalNameInPublicVariable
 //                      ^ @CursorOnOriginalNameInPublicVariable
+    User public externalUserContract;
+//  ^^^^ @UserInPublicVariable
+//     ^ @CursorOnUserInPublicVariable
 }
 
 // ----
@@ -188,6 +193,54 @@ contract C
 //             {
 //                 "newText": "Renamed",
 //                 "range": @OriginalNameInImportDirective
+//             }
+//         ]
+//     }
+// }
+// -> textDocument/rename {
+//     "newName": "Renamed",
+//     "position": @CursorOnUserInPublicVariable
+// }
+// <- {
+//     "changes": {
+//         "rename/contract.sol": [
+//             {
+//                 "newText": "Renamed",
+//                 "range": @UserContractInContractTest
+//             }
+//         ],
+//         "rename/import_directive.sol": [
+//             {
+//                 "newText": "Renamed",
+//                 "range": @UserInPublicVariable
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @UserInImportDirective
+//             }
+//         ]
+//     }
+// }
+// -> textDocument/rename {
+//     "newName": "Renamed",
+//     "position": @CursorOnUserInImportDirective
+// }
+// <- {
+//     "changes": {
+//         "rename/contract.sol": [
+//             {
+//                 "newText": "Renamed",
+//                 "range": @UserContractInContractTest
+//             }
+//         ],
+//         "rename/import_directive.sol": [
+//             {
+//                 "newText": "Renamed",
+//                 "range": @UserInPublicVariable
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @UserInImportDirective
 //             }
 //         ]
 //     }

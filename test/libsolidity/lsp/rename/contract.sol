@@ -8,6 +8,7 @@ contract ToRename
 }
 
 contract User
+//       ^^^^ @UserContractInContractTest
 {
     ToRename public publicVariable;
 //  ^^^^^^^^ @ContractInPublicVariable
