@@ -54,18 +54,24 @@ void RenameSymbol::operator()(MessageID _id, Json::Value const& _args)
 	extractNameAndDeclaration(*sourceNode, *cursorBytePosition);
 
 	// Find all source units using this symbol
-
 	for (auto const& [name, content]: fileRepository().sourceUnits())
 	{
 		auto const& sourceUnit = m_server.compilerStack().ast(name);
 		for (auto const* referencedSourceUnit: sourceUnit.referencedSourceUnits(true, util::convertContainer<set<SourceUnit const*>>(m_sourceUnits)))
+		{
 			// TODO check for nullptr
 			if (*referencedSourceUnit->location().sourceName == sourceUnitName)
 			{
-				m_sourceUnits.emplace_back(&sourceUnit);
+				m_sourceUnits.insert(&sourceUnit);
 				break;
 			}
+
+			lspDebug(fmt::format("ReferencedUnit: {}", *referencedSourceUnit->location().sourceName));
+		}
 	}
+
+	// Origin source unit should always be checked
+	m_sourceUnits.insert(&m_declarationToRename->sourceUnit());
 
 	Visitor visitor(*this);
 
@@ -107,18 +113,18 @@ void RenameSymbol::operator()(MessageID _id, Json::Value const& _args)
 	client().reply(_id, reply);
 }
 
-void RenameSymbol::extractNameAndDeclaration(frontend::ASTNode const& _node, int _cursorBytePosition)
+void RenameSymbol::extractNameAndDeclaration(ASTNode const& _node, int _cursorBytePosition)
 {
 	// Identify symbol name and node
 	if (auto const* declaration = dynamic_cast<Declaration const*>(&_node))
 	{
-		if (auto const* importDirective = dynamic_cast<ImportDirective const*>(declaration))
-			extractNameAndDeclaration(*importDirective, _cursorBytePosition);
-		else if (declaration->nameLocation().containsOffset(_cursorBytePosition))
+		if (declaration->nameLocation().containsOffset(_cursorBytePosition))
 		{
 			m_symbolName = declaration->name();
 			m_declarationToRename = declaration;
 		}
+		else if (auto const* importDirective = dynamic_cast<ImportDirective const*>(declaration))
+			extractNameAndDeclaration(*importDirective, _cursorBytePosition);
 	}
 	else if (auto const* identifier = dynamic_cast<Identifier const*>(&_node))
 	{
@@ -137,37 +143,38 @@ void RenameSymbol::extractNameAndDeclaration(frontend::ASTNode const& _node, int
 	}
 	else
 		solAssert(false, "Unexpected ASTNODE id: " + to_string(_node.id()));
+
+	lspDebug(fmt::format("Goal: rename '{}', loc: {}-{}", m_symbolName, m_declarationToRename->nameLocation().start, m_declarationToRename->nameLocation().end));
 }
 
-void RenameSymbol::extractNameAndDeclaration(frontend::ImportDirective const& _importDirective, int _cursorBytePosition)
+void RenameSymbol::extractNameAndDeclaration(ImportDirective const& _importDirective, int _cursorBytePosition)
 {
 	for (ImportDirective::SymbolAlias const& symbolAlias: _importDirective.symbolAliases())
 		if (symbolAlias.location.containsOffset(_cursorBytePosition))
 		{
 			solAssert(symbolAlias.alias);
 			m_symbolName = *symbolAlias.alias;
-			m_declarationToRename = &_importDirective;
+			m_declarationToRename = symbolAlias.symbol->annotation().referencedDeclaration;
 			break;
 		}
 }
 
-void RenameSymbol::Visitor::endVisit(frontend::ImportDirective const& _node)
+void RenameSymbol::Visitor::endVisit(ImportDirective const& _node)
 {
-	// If an import directive is to be renamed, it can only be because it
-	// defines the symbol that is being renamed.
-	if (&_node != m_outer.m_declarationToRename)
+	// Handles SourceUnit aliases
+	if (handleGenericDeclaration(_node))
 		return;
 
-	size_t const sizeBefore = m_outer.m_locations.size();
-
-	for (frontend::ImportDirective::SymbolAlias const& symbolAlias: _node.symbolAliases())
-		if (symbolAlias.alias != nullptr && *symbolAlias.alias == m_outer.m_symbolName)
+	for (ImportDirective::SymbolAlias const& symbolAlias: _node.symbolAliases())
+		if (
+			symbolAlias.alias != nullptr &&
+			*symbolAlias.alias == m_outer.m_symbolName &&
+			symbolAlias.symbol->annotation().referencedDeclaration == m_outer.m_declarationToRename
+		)
 			m_outer.m_locations.emplace_back(symbolAlias.location);
-
-	solAssert(sizeBefore < m_outer.m_locations.size(), "Found no source location in ImportDirective?!");
 }
 
-void RenameSymbol::Visitor::endVisit(frontend::MemberAccess const& _node)
+void RenameSymbol::Visitor::endVisit(MemberAccess const& _node)
 {
 	if (
 		m_outer.m_symbolName == _node.memberName() &&
@@ -176,7 +183,7 @@ void RenameSymbol::Visitor::endVisit(frontend::MemberAccess const& _node)
 		m_outer.m_locations.emplace_back(_node.memberLocation());
 }
 
-void RenameSymbol::Visitor::endVisit(frontend::Identifier const& _node)
+void RenameSymbol::Visitor::endVisit(Identifier const& _node)
 {
 	if (
 		m_outer.m_symbolName == _node.name() &&
@@ -185,7 +192,7 @@ void RenameSymbol::Visitor::endVisit(frontend::Identifier const& _node)
 		m_outer.m_locations.emplace_back(_node.location());
 }
 
-void RenameSymbol::extractNameAndDeclaration(frontend::IdentifierPath const& _identifierPath, int _cursorBytePosition)
+void RenameSymbol::extractNameAndDeclaration(IdentifierPath const& _identifierPath, int _cursorBytePosition)
 {
 	// iterate through the elements of the path to find the one the cursor is on
 	size_t numIdentifiers = _identifierPath.pathLocations().size();
@@ -204,7 +211,7 @@ void RenameSymbol::extractNameAndDeclaration(frontend::IdentifierPath const& _id
 	}
 }
 
-void RenameSymbol::Visitor::endVisit(frontend::IdentifierPath const& _node)
+void RenameSymbol::Visitor::endVisit(IdentifierPath const& _node)
 {
 	std::vector<Declaration const*>& declarations = _node.annotation().pathDeclarations;
 	solAssert(declarations.size() == _node.path().size());

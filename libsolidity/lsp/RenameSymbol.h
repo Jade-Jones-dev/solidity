@@ -81,13 +81,17 @@ protected:
 			handleGenericDeclaration(_node);
 		}
 
-		void handleGenericDeclaration(frontend::Declaration const& _declaration)
+		bool handleGenericDeclaration(frontend::Declaration const& _declaration)
 		{
 			if (
 				m_outer.m_symbolName == _declaration.name() &&
 				*m_outer.m_declarationToRename == _declaration
 			)
+			{
 				m_outer.m_locations.emplace_back(_declaration.nameLocation());
+				return true;
+			}
+			return false;
 		}
 
 		private:
@@ -103,7 +107,7 @@ protected:
 	// Original name
 	frontend::ASTString m_symbolName = {};
 	// SourceUnits to search & replace symbol in
-	std::vector<frontend::SourceUnit const*> m_sourceUnits = {};
+	std::set<frontend::SourceUnit const*, frontend::ASTNode::CompareByID> m_sourceUnits = {};
 	// Source locations that need to be replaced
 	std::vector<langutil::SourceLocation> m_locations = {};
 };
