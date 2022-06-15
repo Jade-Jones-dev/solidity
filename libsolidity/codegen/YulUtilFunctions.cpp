@@ -688,14 +688,8 @@ string YulUtilFunctions::overflowCheckedIntMulFunction(IntegerType const& _type)
 				product := mul(x, y)
 				<?signed>
 					<?256bit>
-						// overflow, if x > 0, y > 0 and x > (maxValue / y)
-						if and(and(sgt(x, 0), sgt(y, 0)), gt(x, div(<maxValue>, y))) { <panic>() }
-						// underflow, if x > 0, y < 0 and y < (minValue / x)
-						if and(and(sgt(x, 0), slt(y, 0)), slt(y, sdiv(<minValue>, x))) { <panic>() }
-						// underflow, if x < 0, y > 0 and x < (minValue / y)
-						if and(and(slt(x, 0), sgt(y, 0)), slt(x, sdiv(<minValue>, y))) { <panic>() }
-						// overflow, if x < 0, y < 0 and x < (maxValue / y)
-						if and(and(slt(x, 0), slt(y, 0)), slt(x, sdiv(<maxValue>, y))) { <panic>() }
+						// overflow/underflow, if y != 0 and x != product / y
+						if and(iszero(iszero(y)), iszero(eq(x, sdiv(product, y)))) { <panic>() }
 					<!256bit>
 						// overflow, if same signal and product > maxValue
 						if and(iszero(and(xor(x,y), <bitMask>)), sgt(product, <maxValue>)) { <panic>() }
@@ -704,8 +698,8 @@ string YulUtilFunctions::overflowCheckedIntMulFunction(IntegerType const& _type)
 					</256bit>
 				<!signed>
 					<?256bit>
-					// overflow, if x != 0 and y > (maxValue / x)
-					if and(iszero(iszero(x)), gt(y, div(<maxValue>, x))) { <panic>() }
+					// overflow, if y != 0 and x != (product / y)
+					if and(iszero(iszero(y)), iszero(eq(x, div(product, y)))) { <panic>() }
 					<!256bit>
 					// overflow, if product > maxValue
 					if gt(product, <maxValue>) { <panic>() }

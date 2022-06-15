@@ -33,7 +33,7 @@ while type_bits <= n_bits:
 	if type_bits == n_bits:
 		overflow_check = GT(X, sum_)
 	else:
-		overflow_check = GT(_sum, maxValue)
+		overflow_check = GT(sum_, maxValue)
 
 	rule.check(overflow_check != 0, actual_overflow)
 

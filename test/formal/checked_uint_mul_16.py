@@ -1,4 +1,4 @@
-from opcodes import AND, ISZERO, GT, DIV, MUL
+from opcodes import AND, ISZERO, GT, DIV, MUL, EQ
 from rule import Rule
 from util import BVUnsignedUpCast, BVUnsignedMax
 from z3 import BitVec, Not, BVMulNoOverflow
@@ -32,10 +32,10 @@ while type_bits <= n_bits:
 
 	# Overflow check in YulUtilFunction::overflowCheckedIntMulFunction
 	if type_bits == n_bits:
-		overflow_check = AND(ISZERO(ISZERO(X)), GT(Y, DIV(maxValue, X)))
+		overflow_check = AND(ISZERO(ISZERO(Y)), ISZERO(EQ(X, DIV(product, Y))))
 	else:
 		overflow_check = GT(product, maxValue)
 
 	rule.check(overflow_check != 0, actual_overflow)
 
-	type_bits *= 2
+	type_bits += 4
