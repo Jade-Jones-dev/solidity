@@ -150,6 +150,36 @@ contract C
 // }
 // <- {
 //     "changes": {
+//         "rename/contract.sol": [
+//             {
+//                 "newText": "Renamed",
+//                 "range": @ContractInParameter
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @ContractInReturnExpression
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @ContractInReturnParameter
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @ContractInMapping
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @ContractInArrayType
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @ContractInPublicVariable
+//             },
+//             {
+//                 "newText": "Renamed",
+//                 "range": @ContractInDefinition
+//             }
+//         ],
 //         "rename/import_directive.sol": [
 //             {
 //                 "newText": "Renamed",

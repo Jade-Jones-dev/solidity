@@ -718,16 +718,15 @@ class FileTestRunner:
                     result["uri"] = result["uri"].replace(self.suite.project_root_uri + "/" + self.sub_dir + "/", "")
 
         elif isinstance(actualResponseJson["result"], dict):
-            changes = actualResponseJson["result"]["changes"]
-            for key in list(changes.keys()):
-                new_key = key.replace(self.suite.project_root_uri + "/", "")
-                changes[new_key] = changes[key]
-                del changes[key]
+            if "changes" in actualResponseJson["result"]:
+                changes = actualResponseJson["result"]["changes"]
+                for key in list(changes.keys()):
+                    new_key = key.replace(self.suite.project_root_uri + "/", "")
+                    changes[new_key] = changes[key]
+                    del changes[key]
 
         if "jsonrpc" in actualResponseJson:
             actualResponseJson.pop("jsonrpc")
-
-        print(actualResponseJson)
 
         try:
             expectedResponseJson = self.parse_json_with_tags(testcase.response, self.markers)
@@ -765,6 +764,13 @@ class FileTestRunner:
             if not isinstance(data, dict):
                 return data
 
+            def findMarker(desired_tag) -> dict:
+                for tag, tagRange in markers.items():
+                    if tag == desired_tag:
+                        return tagRange
+                return {}
+
+
             # Check if we need markers from a specific file
             # Needs to be done before the loop or it might be called only after
             # we found "range" or "position"
@@ -773,13 +779,16 @@ class FileTestRunner:
 
             for key, val in data.items():
                 if key == "range":
-                    for tag, tagRange in markers.items():
-                        if tag == val:
-                            data[key] = tagRange
+                    data[key] = findMarker(val)
                 elif key == "position":
-                    for tag, tagRange in markers.items():
-                        if tag == val:
-                            data[key] = tagRange["start"]
+                    data[key] = findMarker(val)["start"]
+                elif key == "changes":
+                    for path, list_of_changes in val.items():
+                        test_name, file_sub_dir = split_path(path)
+                        markers = self.suite.get_test_tags(test_name[:-len(".sol")], file_sub_dir)
+                        for change in list_of_changes:
+                            if "range" in change:
+                                change["range"] = findMarker(change["range"])
                 elif isinstance(val, dict):
                     replace_tag(val, markers)
                 elif isinstance(val, list):
@@ -1176,7 +1185,6 @@ class SolidityLSPTestSuite: # {{{
                     pass
             elif "changes" in item:
                 for file, changes_for_file in item["changes"].items():
-                    print(f"in changes: {file}")
                     test_name, file_sub_dir = split_path(file)
                     try:
                         markers = self.get_test_tags(test_name[:-len(".sol")], file_sub_dir)
