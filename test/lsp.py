@@ -764,11 +764,11 @@ class FileTestRunner:
             if not isinstance(data, dict):
                 return data
 
-            def findMarker(desired_tag) -> dict:
+            def findMarker(desired_tag):
                 for tag, tagRange in markers.items():
                     if tag == desired_tag:
                         return tagRange
-                return {}
+                return desired_tag
 
 
             # Check if we need markers from a specific file
