@@ -31,14 +31,15 @@ while type_bits <= n_bits:
 	# Constants
 	maxValue = BVSignedMax(type_bits, n_bits)
 	minValue = BVSignedMin(type_bits, n_bits)
+	bitMask =  2**(type_bits-1)
 
 	# Overflow and underflow checks in YulUtilFunction::overflowCheckedIntMulFunction
 	if type_bits == n_bits:
 		overflow_check = AND(ISZERO(ISZERO(Y)), ISZERO(EQ(X, SDIV(product, Y))))
 		underflow_check = overflow_check
 	else:
-		overflow_check = AND(ISZERO(AND(XOR(X, Y), 2**(type_bits-1))), SGT(product, maxValue))
-		underflow_check = AND(ISZERO(ISZERO(AND(XOR(X, Y), 2**(type_bits-1)))), SLT(product, minValue))
+		overflow_check = AND(ISZERO(AND(XOR(X, Y),bitMask)), SGT(product, maxValue))
+		underflow_check = AND(EQ(AND(XOR(X, Y), bitMask), bitMask), SLT(product, minValue))
 
 	rule.check(actual_overflow, overflow_check != 0)
 	rule.check(actual_underflow, underflow_check != 0)

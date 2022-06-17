@@ -694,7 +694,7 @@ string YulUtilFunctions::overflowCheckedIntMulFunction(IntegerType const& _type)
 						// overflow, if same signal and product > maxValue
 						if and(iszero(and(xor(x,y), <bitMask>)), sgt(product, <maxValue>)) { <panic>() }
 						// underflow, if different signal and product < minValue
-						if and(iszero(iszero(and(xor(x,y), <bitMask>))), slt(product, <minValue>)) { <panic>() }
+						if and(eq(and(xor(x,y), <bitMask>), <bitMask>), slt(product, <minValue>)) { <panic>() }
 					</256bit>
 				<!signed>
 					<?256bit>
